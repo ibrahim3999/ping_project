@@ -5,18 +5,21 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+
 #define MAGIC "1234567890"
 #define MAGIC_LEN 11
 #define MTU 1500
 #define RECV_TIMEOUT_USEC 100000
-//Like struct icmp + 
+//Like struct icmp 
 struct icmp_echo {
     // header
     uint8_t type;
     uint8_t code;
     uint16_t checksum;
+
     uint16_t ident;
     uint16_t seq;
+
     // data
     double sending_ts;
     char magic[MAGIC_LEN];
@@ -192,20 +195,7 @@ int ping(const char *ip)
     return 0;
 }
 
-int main(int argc,char *argv[])
+int main(int argc, const char* argv[])
 {
-    char PingIp[32];
-    int counter;
-    if(argc<1)
-    {
-        printf("\n No Extra command line Argument Passed Other Than program Name!!!!\n");
-    }
-    if(argc>=2){
-        printf("------------IP Passed------------\n");
-        strcpy(PingIp,argv[1]);
-        printf("Your ping IP is: %s\n",PingIp);
-    }
-    printf("hello parta\n");
-
     return ping(argv[1]);
 }

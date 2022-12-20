@@ -21,3 +21,8 @@ int main()
     printf("child exit status is: %d", status);
     return 0;
 }
+void func()
+{
+    printf("Hello\n");
+}
+

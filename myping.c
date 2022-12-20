@@ -182,3 +182,7 @@ unsigned short calculate_checksum(unsigned short *paddress, int len)
 
     return answer;
 }
+void func()
+{
+    printf("Hello\n");
+}
