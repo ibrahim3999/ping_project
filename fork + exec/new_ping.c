@@ -17,6 +17,9 @@ int main()
         printf("in child \n");
         execvp(args[0], args);
     }
+    else {
+
+    }
     wait(&status); // waiting for child to finish before exiting
     printf("child exit status is: %d", status);
     return 0;
