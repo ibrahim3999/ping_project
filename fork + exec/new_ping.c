@@ -27,6 +27,9 @@
 // run 2 programs using fork + exec
 // command: make clean && make all && ./partb
 int setSock();
+char timeout[1];
+int end();
+
 
 
     //#######################RAW SOCKET###################################
@@ -83,6 +86,13 @@ uint16_t calculate_checksum(unsigned char* buffer, int bytes)
 
 int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
+    //IF TIMER NOT UPDATE
+    bzero(timeout, sizeof(timeout));
+    if (recv(client_socket, &timeout, sizeof(timeout), 0)>0)
+    {
+        end();
+    }
+    
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -110,6 +120,10 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
     if (bytes == -1) {
         return -1;
     }
+    //send Update to watchdog timer
+    char buffer_update[1]='1';
+    bzero(buffer_update, sizeof(buffer_update));
+    send(client_socket, buffer_update, sizeof(buffer_update), 0);
 
     return 0;
 }
@@ -253,21 +267,8 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     
 
-    //********************************************************
-    //sending the status of the ping to watchdog
-    printf("[+]send the status of the ping\n");
-
-    size = send(client_socket, buffer, sizeof(buffer), 0);
-        if(size<0){
-            printf("ERROR - Send the half 1 of f2.txt-> failed with error!\n");
-            exit(1);
-          }
-
-
-    //get a msg of time out from watchdog if 10 seconds left!
-    recv(client_socket, &xorcheck, sizeof(xorcheck), 0);
-
-
+   
+    
     //################################################
     char *args[2];
     // compiled watchdog.c by makefile
@@ -294,10 +295,14 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
         printf("Your ping IP is: %s\n",PingIp);
     }
     ping(argv[1]);
-    
+    end(){
+        printf("server %s cannot be reached\n",PingIp);
+        close(sock);
+        close(client_socket);
+    }
 
-    //close the TCP socket with watchdog
-    close(client_socket);
+    
+    
     return 0;
 }
 

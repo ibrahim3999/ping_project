@@ -83,12 +83,12 @@ receiver_socket = setSock(); //Creating the socket
         } else {
             printf("[+]Sender number connection accepted\n");
         }
-    /////
+    
 
     printf("\nhello partb\n");
     char buffreExit[1];
-    char buffer_timeout[8];
-    strcpy(buffer_timeout,"timeout");
+    char buffer_timeout[1];
+    buffer_timeout[0]='0';
     
     
     /*
@@ -121,6 +121,7 @@ receiver_socket = setSock(); //Creating the socket
         }
         else break;
     }
+    bzero(buffer_timeout, sizeof(buffer_timeout));
     send(client_socket,buffer_timeout, sizeof(buffer_timeout),0);
 
     close(receiver_socket);
