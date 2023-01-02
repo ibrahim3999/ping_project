@@ -29,7 +29,9 @@
 int setSock();
 char timeout[1];
 int end();
-
+int client_socket;
+int sock;
+int tcp_socket();
 
 
     //#######################RAW SOCKET###################################
@@ -121,7 +123,8 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
         return -1;
     }
     //send Update to watchdog timer
-    char buffer_update[1]='1';
+    char buffer_update[1];
+    buffer_update[0]='1';
     bzero(buffer_update, sizeof(buffer_update));
     send(client_socket, buffer_update, sizeof(buffer_update), 0);
 
@@ -137,7 +140,7 @@ int recv_echo_reply(int sock, int ident)
     // receive another packet
     int addr_len = sizeof(peer_addr);
     int bytes = recvfrom(sock, buffer, sizeof(buffer), 0,
-        (struct sockaddr*)&peer_addr, &addr_len);
+        (struct sockaddr*)&peer_addr, (socklen_t*)&addr_len);
     if (bytes == -1) {
         // normal return when timeout
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -234,12 +237,14 @@ int ping(const char *ip)
 
 int main(int argc,char *argv[])
 {
+
+int tcp_socket(){
 int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket == -1) {
         fprintf(stderr, "Socket ERROR - could not create the socket : %s\n", strerror(errno));
         exit(1); 
     }
-    else printf("[+]TCP protocol socket created.\n");
+    else printf("[+]TCP protocol socket created. - NEW PING\n");
 
 
     //Sets the first count bytes of destination
@@ -261,14 +266,14 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
         exit(1); 
     }
     else {
-        printf("[+]ping connected to the watchdog successfully!!\n");
+        printf("[+]ping connected to the watchdog successfully!! - NEW PING\n");
     }
-#
+    //// Return the client socket descriptor if the connection was successful
+    return client_socket;
+}
 
-    
 
-   
-    
+
     //################################################
     char *args[2];
     // compiled watchdog.c by makefile
@@ -282,9 +287,10 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
         printf("in child \n");
         execvp(args[0], args);
     }
+    //creating the tcp socket
+    tcp_socket();
     //START PING
     char PingIp[32];
-    int counter;
     if(argc<1)
     {
         printf("\n No Extra command line Argument Passed Other Than program Name!!!!\n");
@@ -295,10 +301,11 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
         printf("Your ping IP is: %s\n",PingIp);
     }
     ping(argv[1]);
-    end(){
+    int end(){
         printf("server %s cannot be reached\n",PingIp);
         close(sock);
         close(client_socket);
+        return 0;
     }
 
     

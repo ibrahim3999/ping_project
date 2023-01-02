@@ -25,7 +25,7 @@ int setSock();
 int main()
 {
 
-    socklen_t length;
+    
     struct sockaddr_in client_addr;
     struct sockaddr_in server_addr;
     socklen_t client_addr_length = sizeof(client_addr);
@@ -55,7 +55,7 @@ int setSock(){
         exit(1);
     }
 
-    printf("[+]Receiver connected to the Sender successfully!\n\n");
+    printf("[+]Receiver connected to the Sender successfully!-WATCHDOG\n\n");
 
 
     if(listen(receiver_socket, 500) == -1) {
@@ -67,9 +67,9 @@ int setSock(){
 
 receiver_socket = setSock(); //Creating the socket
     
-    printf("[+]TCP protocol socket created -> Waiting for connection with sender\n");
+    printf("[+]TCP protocol socket created -> Waiting for connection with sender-WATCHDOG\n");
 
-    int countbytes = 0;
+    
 
         memset(&client_addr, 0, sizeof(client_addr));
         client_addr_length = sizeof(client_addr);
@@ -81,11 +81,11 @@ receiver_socket = setSock(); //Creating the socket
             printf("listen failed with error code :%d \n",errno);
             exit(1);
         } else {
-            printf("[+]Sender number connection accepted\n");
+            printf("[+]Sender number connection accepted-WATCHDOG\n");
         }
     
 
-    printf("\nhello partb\n");
+    printf("\nhello partb-WATCHDOG\n");
     char buffreExit[1];
     char buffer_timeout[1];
     buffer_timeout[0]='0';
