@@ -109,10 +109,12 @@ receiver_socket = setSock(); //Creating the socket
 
     // Run a loop to Update Watchdog Timer if NEW PING sent msg and reset the timer
     while (1) {
-        
+        printf("check1-WATCHDOG\n");
         // Check if BETTER_PING.C send new packet->Reset timer
         bzero(buffreExit, sizeof(buffreExit));
-        if ((recv(client_socket, &buffreExit, sizeof(buffreExit), 0))>0) {
+        int update = recv(client_socket, &buffreExit, sizeof(buffreExit), 0);
+        printf("%d\n",update);
+        if (update>0) {
             // Reset the timer
             timer.it_value.tv_sec = 10;
             timer.it_value.tv_usec = 0;

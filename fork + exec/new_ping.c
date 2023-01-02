@@ -32,6 +32,14 @@ int end();
 int client_socket;
 int sock;
 int tcp_socket();
+char PingIp[32];
+
+int end(){
+        printf("server %s cannot be reached\n",PingIp);
+        close(sock);
+        close(client_socket);
+        return 0;
+    }
 
 
     //#######################RAW SOCKET###################################
@@ -88,13 +96,14 @@ uint16_t calculate_checksum(unsigned char* buffer, int bytes)
 
 int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
+    printf("check2\n");
     //IF TIMER NOT UPDATE
-    bzero(timeout, sizeof(timeout));
+    /*bzero(timeout, sizeof(timeout));
     if (recv(client_socket, &timeout, sizeof(timeout), 0)>0)
     {
         end();
     }
-    
+    */
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -123,11 +132,11 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
         return -1;
     }
     //send Update to watchdog timer
-    char buffer_update[1];
+    /*char buffer_update[1];
     buffer_update[0]='1';
     bzero(buffer_update, sizeof(buffer_update));
     send(client_socket, buffer_update, sizeof(buffer_update), 0);
-
+*/
     return 0;
 }
 
@@ -175,6 +184,7 @@ int recv_echo_reply(int sock, int ident)
 
 int ping(const char *ip)
 {
+    printf("check3\n");
     // for store destination address
     struct sockaddr_in addr;
     bzero(&addr, sizeof(addr));
@@ -191,7 +201,7 @@ int ping(const char *ip)
     if (sock == -1) {
         return -1;
     }
-
+    
     // set socket timeout option
     struct timeval tv;
     tv.tv_sec = 0;
@@ -204,8 +214,9 @@ int ping(const char *ip)
     double next_ts = get_timestamp();
     int ident = getpid();
     int seq = 1;
-
+    printf("check4\n");
     for (;;) {
+        printf("check5\n");
         // time to send another packet
         if (get_timestamp() >= next_ts) {
             // send it
@@ -213,7 +224,7 @@ int ping(const char *ip)
             if (ret == -1) {
                 perror("Send failed");
             }
-
+            printf("check6\n");
             // update next sendint timestamp to one second later
             next_ts += 1;
             // increase sequence number
@@ -225,6 +236,7 @@ int ping(const char *ip)
         if (ret == -1) {
             perror("Receive failed");
         }
+        printf("check7\n");
     }
 
     return 0;
@@ -238,8 +250,26 @@ int ping(const char *ip)
 int main(int argc,char *argv[])
 {
 
-int tcp_socket(){
-int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+
+
+
+    //################################################
+    char *args[2];
+    // compiled watchdog.c by makefile
+    args[0] = "./watchdog";
+    args[1] = NULL;
+    //int status;
+    //add new process for RUN watchdog code timer
+    int pid = fork();
+    if (pid == 0)
+    {
+        printf("in child -WATCHDOG \n");
+        execvp(args[0], args);
+    }
+    sleep(1);
+    //creating the tcp socket
+    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket == -1) {
         fprintf(stderr, "Socket ERROR - could not create the socket : %s\n", strerror(errno));
         exit(1); 
@@ -268,29 +298,9 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     else {
         printf("[+]ping connected to the watchdog successfully!! - NEW PING\n");
     }
-    //// Return the client socket descriptor if the connection was successful
-    return client_socket;
-}
 
-
-
-    //################################################
-    char *args[2];
-    // compiled watchdog.c by makefile
-    args[0] = "./watchdog";
-    args[1] = NULL;
-    //int status;
-    //add new process for RUN watchdog code timer
-    int pid = fork();
-    if (pid == 0)
-    {
-        printf("in child \n");
-        execvp(args[0], args);
-    }
-    //creating the tcp socket
-    tcp_socket();
     //START PING
-    char PingIp[32];
+    
     if(argc<1)
     {
         printf("\n No Extra command line Argument Passed Other Than program Name!!!!\n");
@@ -300,13 +310,8 @@ int client_socket = socket(AF_INET, SOCK_STREAM, 0);
         strcpy(PingIp,argv[1]);
         printf("Your ping IP is: %s\n",PingIp);
     }
-    ping(argv[1]);
-    int end(){
-        printf("server %s cannot be reached\n",PingIp);
-        close(sock);
-        close(client_socket);
-        return 0;
-    }
+    ping("8.8.8.8");
+    //end();
 
     
     
