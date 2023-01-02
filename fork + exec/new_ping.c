@@ -96,14 +96,13 @@ uint16_t calculate_checksum(unsigned char* buffer, int bytes)
 
 int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
-    printf("check2\n");
     //IF TIMER NOT UPDATE
-    /*bzero(timeout, sizeof(timeout));
+    bzero(timeout, sizeof(timeout));
     if (recv(client_socket, &timeout, sizeof(timeout), 0)>0)
     {
         end();
     }
-    */
+  
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -132,11 +131,11 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
         return -1;
     }
     //send Update to watchdog timer
-    /*char buffer_update[1];
+    char buffer_update[1];
     buffer_update[0]='1';
     bzero(buffer_update, sizeof(buffer_update));
     send(client_socket, buffer_update, sizeof(buffer_update), 0);
-*/
+
     return 0;
 }
 
@@ -184,7 +183,6 @@ int recv_echo_reply(int sock, int ident)
 
 int ping(const char *ip)
 {
-    printf("check3\n");
     // for store destination address
     struct sockaddr_in addr;
     bzero(&addr, sizeof(addr));
@@ -214,9 +212,7 @@ int ping(const char *ip)
     double next_ts = get_timestamp();
     int ident = getpid();
     int seq = 1;
-    printf("check4\n");
     for (;;) {
-        printf("check5\n");
         // time to send another packet
         if (get_timestamp() >= next_ts) {
             // send it
@@ -224,7 +220,6 @@ int ping(const char *ip)
             if (ret == -1) {
                 perror("Send failed");
             }
-            printf("check6\n");
             // update next sendint timestamp to one second later
             next_ts += 1;
             // increase sequence number
@@ -236,13 +231,10 @@ int ping(const char *ip)
         if (ret == -1) {
             perror("Receive failed");
         }
-        printf("check7\n");
     }
 
     return 0;
 }
-
-
 
 
     //#######################END -----  RAW SOCKET###################################
@@ -250,13 +242,9 @@ int ping(const char *ip)
 int main(int argc,char *argv[])
 {
 
-
-
-
-
     //################################################
     char *args[2];
-    // compiled watchdog.c by makefile
+    // compiled watchdog.c by makefile..
     args[0] = "./watchdog";
     args[1] = NULL;
     //int status;
@@ -267,7 +255,6 @@ int main(int argc,char *argv[])
         printf("in child -WATCHDOG \n");
         execvp(args[0], args);
     }
-    sleep(1);
     //creating the tcp socket
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket == -1) {
@@ -310,11 +297,10 @@ int main(int argc,char *argv[])
         strcpy(PingIp,argv[1]);
         printf("Your ping IP is: %s\n",PingIp);
     }
-    ping("8.8.8.8");
-    //end();
+    ping(argv[1]);
+    end();
 
     
     
     return 0;
 }
-
