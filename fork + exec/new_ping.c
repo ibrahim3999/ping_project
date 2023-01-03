@@ -33,6 +33,7 @@ int client_socket;
 int sock;
 int tcp_socket();
 char PingIp[32];
+char buffer_update[1];
 
 int end(){
         printf("server %s cannot be reached\n",PingIp);
@@ -96,13 +97,13 @@ uint16_t calculate_checksum(unsigned char* buffer, int bytes)
 
 int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
-    //IF TIMER NOT UPDATE
-    bzero(timeout, sizeof(timeout));
-    if (recv(client_socket, &timeout, sizeof(timeout), 0)>0)
-    {
-        end();
-    }
-  
+    char buffer_update[1];
+    buffer_update[0]=1;
+    int check_send=send(client_socket, buffer_update, sizeof(buffer_update), 0);
+    printf("%d check in sendto\n",check_send);
+    /////////////
+    
+    
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -131,11 +132,14 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
         return -1;
     }
     //send Update to watchdog timer
-    char buffer_update[1];
-    buffer_update[0]='1';
-    bzero(buffer_update, sizeof(buffer_update));
-    send(client_socket, buffer_update, sizeof(buffer_update), 0);
-
+    int check_rcv= recv(client_socket, &timeout, sizeof(timeout), 0);
+   printf("%d\n",check_rcv);
+    if (check_rcv>0)
+    {
+        end();
+    }
+   
+  
     return 0;
 }
 
@@ -244,7 +248,7 @@ int main(int argc,char *argv[])
 
     //################################################
     char *args[2];
-    // compiled watchdog.c by makefile..
+    // compiled watchdog.c by makefile
     args[0] = "./watchdog";
     args[1] = NULL;
     //int status;
@@ -255,6 +259,7 @@ int main(int argc,char *argv[])
         printf("in child -WATCHDOG \n");
         execvp(args[0], args);
     }
+    sleep(2);
     //creating the tcp socket
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket == -1) {
@@ -297,6 +302,7 @@ int main(int argc,char *argv[])
         strcpy(PingIp,argv[1]);
         printf("Your ping IP is: %s\n",PingIp);
     }
+    
     ping(argv[1]);
     end();
 
