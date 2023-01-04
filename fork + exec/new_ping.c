@@ -42,6 +42,30 @@ int end(){
         return 0;
     }
 
+int update(int sock) {
+    bzero(buffer_update, sizeof(buffer_update));
+    int check_send = send(sock, buffer_update, sizeof(buffer_update), 0);
+    if (check_send == -1) {
+        // an error occurred
+        fprintf(stderr, "Error sending message: %s\n", strerror(errno));
+    } else {
+        printf("%d bytes sent successfully - in update func NEW PING\n", check_send);
+    }
+}
+
+int recv_timeout(int sock){
+    //recv Update from watchdog timer
+    
+    int check_rcv= recv(sock, &timeout, sizeof(timeout), 0);
+    if (check_rcv == -1) {
+        // an error occurred
+        fprintf(stderr, "Error sending message: in recv-sendto NEW PING %s\n", strerror(errno));
+    } else {
+        printf("%d bytes sent successfully-in recv NEW PING\n", check_rcv);
+    }
+}
+
+
 
     //#######################RAW SOCKET###################################
 //Like struct icmp + 
@@ -97,13 +121,10 @@ uint16_t calculate_checksum(unsigned char* buffer, int bytes)
 
 int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
-    char buffer_update[1];
-    buffer_update[0]=1;
-    int check_send=send(client_socket, buffer_update, sizeof(buffer_update), 0);
-    printf("%d check in sendto\n",check_send);
-    /////////////
     
-    
+  
+    //IF TIMER NOT UPDATE
+  
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -131,13 +152,9 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
     if (bytes == -1) {
         return -1;
     }
-    //send Update to watchdog timer
-    int check_rcv= recv(client_socket, &timeout, sizeof(timeout), 0);
-   printf("%d\n",check_rcv);
-    if (check_rcv>0)
-    {
-        end();
-    }
+    
+   
+    
    
   
     return 0;
@@ -185,60 +202,7 @@ int recv_echo_reply(int sock, int ident)
     return 0;
 }
 
-int ping(const char *ip)
-{
-    // for store destination address
-    struct sockaddr_in addr;
-    bzero(&addr, sizeof(addr));
 
-    // fill address, set port to 0
-    addr.sin_family = AF_INET;
-    addr.sin_port = 0;
-    if (inet_aton(ip, (struct in_addr*)&addr.sin_addr.s_addr) == 0) {
-        return -1;
-    };
-
-    // create raw socket for icmp protocol
-    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (sock == -1) {
-        return -1;
-    }
-    
-    // set socket timeout option
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = RECV_TIMEOUT_USEC;
-    int ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    if (ret == -1) {
-        return -1;
-    }
-
-    double next_ts = get_timestamp();
-    int ident = getpid();
-    int seq = 1;
-    for (;;) {
-        // time to send another packet
-        if (get_timestamp() >= next_ts) {
-            // send it
-            ret = send_echo_request(sock, &addr, ident, seq);
-            if (ret == -1) {
-                perror("Send failed");
-            }
-            // update next sendint timestamp to one second later
-            next_ts += 1;
-            // increase sequence number
-            seq += 1;
-        }
-
-        // try to receive and print reply
-        ret = recv_echo_reply(sock, ident);
-        if (ret == -1) {
-            perror("Receive failed");
-        }
-    }
-
-    return 0;
-}
 
 
     //#######################END -----  RAW SOCKET###################################
@@ -259,8 +223,8 @@ int main(int argc,char *argv[])
         printf("in child -WATCHDOG \n");
         execvp(args[0], args);
     }
-    sleep(2);
-    //creating the tcp socket
+    sleep(1);
+    //###################creating the tcp socket##########################################
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(client_socket == -1) {
         fprintf(stderr, "Socket ERROR - could not create the socket : %s\n", strerror(errno));
@@ -290,7 +254,7 @@ int main(int argc,char *argv[])
     else {
         printf("[+]ping connected to the watchdog successfully!! - NEW PING\n");
     }
-
+    //###################END tcp socket##########################################
     //START PING
     
     if(argc<1)
@@ -303,8 +267,63 @@ int main(int argc,char *argv[])
         printf("Your ping IP is: %s\n",PingIp);
     }
     
-    ping(argv[1]);
-    end();
+    
+    //update(client_socket);
+    ///////////RAW SOCKET START HERE///////////////////////////////////////
+        // for store destination address
+    struct sockaddr_in addr;
+    bzero(&addr, sizeof(addr));
+
+    // fill address, set port to 0
+    addr.sin_family = AF_INET;
+    addr.sin_port = 0;
+    if (inet_aton(argv[1], (struct in_addr*)&addr.sin_addr.s_addr) == 0) {
+        return -1;
+    };
+
+    // create raw socket for icmp protocol
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (sock == -1) {
+        return -1;
+    }
+    
+    // set socket timeout option
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = RECV_TIMEOUT_USEC;
+    int ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    if (ret == -1) {
+        return -1;
+    }
+    printf("check before for loop-NEW PING\n");
+    double next_ts = get_timestamp();
+    int ident = getpid();
+    int seq = 1;
+    for (;;) {
+        // time to send another packet
+        if (get_timestamp() >= next_ts) {
+            // send it
+            ret = send_echo_request(sock, &addr, ident, seq);
+            if (ret == -1) {
+                perror("Send failed");
+            }
+            
+            // update next sendint timestamp to one second later
+            next_ts += 1;
+            // increase sequence number
+            seq += 1;
+            update(client_socket);
+        }
+
+        // try to receive and print reply
+        ret = recv_echo_reply(sock, ident);
+        if (ret == -1) {
+            perror("Receive failed");
+        }
+    }
+
+    
+    close(sock);
 
     
     

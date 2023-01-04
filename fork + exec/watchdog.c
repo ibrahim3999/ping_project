@@ -20,11 +20,25 @@
 #define SERVER_IP_ADDRESS "127.0.0.1"
 
 int setSock();
+char buffer_timeout[1];
 int timeout_flag = 0;
 
 void timeout_handler(int sig){
     printf("Timeout happened!\n");
+    printf("#########################################################\n");
     timeout_flag = 1;
+}
+
+int update2(int sock) {
+    buffer_timeout[0]='0';
+    bzero(buffer_timeout, sizeof(buffer_timeout));
+    int check_send = send(sock, buffer_timeout, sizeof(buffer_timeout), 0);
+    if (check_send == -1) {
+        // an error occurred
+        fprintf(stderr, "Error sending message:in update func WATCHDOG %s\n", strerror(errno));
+    } else {
+        printf("%d bytes sent successfully - in update func WATCHDOG\n", check_send);
+    }
 }
 
 int main()
@@ -93,50 +107,40 @@ receiver_socket = setSock(); //Creating the socket
     
 
     printf("\nhello partb-WATCHDOG\n");
-    
-    char buffreExit[256];
+    char buffreExit[1];
     char buffer_timeout[1];
     buffer_timeout[0]='0';
     
-    
-   
 
-    // Run a loop to Update Watchdog Timer if NEW PING sent msg and reset the timer
-    while (1) {
-        printf("check in While loop-WATCHDOG\n");
-
-        // Set the timer to expire after 10 seconds
+   // Set the timer to expire after 10 seconds
     struct itimerval timer;
     timer.it_value.tv_sec = 10;
     timer.it_value.tv_usec = 0;
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
     setitimer(ITIMER_REAL, &timer, NULL);
 
+    // Run a loop to Update Watchdog Timer if NEW PING sent msg and reset the timer
+    while (1) {
+        printf("check1-WATCHDOG\n");
        // Check if BETTER_PING.C send new packet->Reset timer
         
         int update = recv(client_socket, &buffreExit, sizeof(buffreExit), 0);
-        printf("%d the update to timer\n",update);
+        printf("%d+++\n",update);
         if (update>0) {
             // Reset the timer
             timer.it_value.tv_sec = 10;
             timer.it_value.tv_usec = 0;
             setitimer(ITIMER_REAL, &timer, NULL);
             printf("Check Timer reset\n");
+            //update2(receiver_socket);
             
         }
-        if (timeout_flag)
-        {
-            //send a timeout message
-            printf("the time out - WATCHDOG");
-            timeout_flag =0;
-            close(receiver_socket);
-        }
-        
         
     }
 
-    bzero(buffer_timeout, sizeof(buffer_timeout));
-    send(client_socket,buffer_timeout, sizeof(buffer_timeout),0);
-
     
+
+    close(receiver_socket);
     return 0;
 }
