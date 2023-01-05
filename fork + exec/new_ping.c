@@ -43,7 +43,7 @@ int end(){
     }
 
 int update(int sock) {
-    bzero(buffer_update, sizeof(buffer_update));
+    //bzero(buffer_update, sizeof(buffer_update));
     int check_send = send(sock, buffer_update, sizeof(buffer_update), 0);
     if (check_send == -1) {
         // an error occurred
@@ -53,17 +53,11 @@ int update(int sock) {
     }
 }
 
-int recv_timeout(int sock){
-    //recv Update from watchdog timer
-    
-    int check_rcv= recv(sock, &timeout, sizeof(timeout), 0);
-    if (check_rcv == -1) {
-        // an error occurred
-        fprintf(stderr, "Error sending message: in recv-sendto NEW PING %s\n", strerror(errno));
-    } else {
-        printf("%d bytes sent successfully-in recv NEW PING\n", check_rcv);
-    }
-}
+/*
+*/
+
+
+
 
 
 
@@ -300,8 +294,11 @@ int main(int argc,char *argv[])
     int ident = getpid();
     int seq = 1;
     for (;;) {
+        
         // time to send another packet
         if (get_timestamp() >= next_ts) {
+
+        
             // send it
             ret = send_echo_request(sock, &addr, ident, seq);
             if (ret == -1) {
@@ -314,18 +311,45 @@ int main(int argc,char *argv[])
             seq += 1;
             update(client_socket);
         }
-
+        
         // try to receive and print reply
         ret = recv_echo_reply(sock, ident);
         if (ret == -1) {
             perror("Receive failed");
         }
+        
+        /////
+        int ret = recv(sock, &timeout, sizeof(timeout), 0);
+        /*if (ret == -1) {
+        perror("Receive faileddddd");
+         } 
+         else if (ret == 0) {
+        // connection was closed by the peer
+        break;
+        } */
+        // check if recv returned without receiving data
+        if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        // no data received, continue loop
+        continue;
+        }
+
+        
+        
+        
+        
+    }
+
+    close(client_socket);
+    close(sock);
+
+
+        return 0;
+
+
     }
 
     
-    close(sock);
 
     
     
-    return 0;
-}
+    

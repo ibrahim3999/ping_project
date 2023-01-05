@@ -22,24 +22,29 @@
 int setSock();
 char buffer_timeout[1];
 int timeout_flag = 0;
+int receiver_socket;
+char PingIp[32];
+
+int update2(int sock){
+    bzero(PingIp, sizeof(PingIp));
+    int check_send = send(sock, PingIp, sizeof(PingIp), 0);
+    if (check_send == -1) {
+    // an error occurred
+    fprintf(stderr, "Eeeeeeerror sending message:in update func WATCHDOG %s\n", strerror(errno));
+    } else {
+    printf("%d bytes sent successfully - in update func WATCHDOG\n", check_send);
+    close(receiver_socket);
+    }
+}
 
 void timeout_handler(int sig){
-    printf("Timeout happened!\n");
-    printf("#########################################################\n");
+    printf("server %s cannot be reached\n",PingIp);
+    update2(receiver_socket);
+    //exit(1);
     timeout_flag = 1;
 }
 
-int update2(int sock) {
-    buffer_timeout[0]='0';
-    bzero(buffer_timeout, sizeof(buffer_timeout));
-    int check_send = send(sock, buffer_timeout, sizeof(buffer_timeout), 0);
-    if (check_send == -1) {
-        // an error occurred
-        fprintf(stderr, "Error sending message:in update func WATCHDOG %s\n", strerror(errno));
-    } else {
-        printf("%d bytes sent successfully - in update func WATCHDOG\n", check_send);
-    }
-}
+
 
 int main()
 {
@@ -140,7 +145,8 @@ receiver_socket = setSock(); //Creating the socket
     }
 
     
+    
 
-    close(receiver_socket);
+    
     return 0;
 }
