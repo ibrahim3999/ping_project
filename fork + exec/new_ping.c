@@ -28,30 +28,27 @@
 // command: make clean && make all && ./partb
 int setSock();
 char timeout[1];
-int end();
+
 int client_socket;
 int sock;
-int tcp_socket();
+
 char PingIp[32];
 char buffer_update[1];
 
-int end(){
-        printf("server %s cannot be reached\n",PingIp);
-        close(sock);
-        close(client_socket);
-        return 0;
-    }
+
 
 int update(int sock) {
     //bzero(buffer_update, sizeof(buffer_update));
     int check_send = send(sock, buffer_update, sizeof(buffer_update), 0);
     if (check_send == -1) {
         // an error occurred
-        fprintf(stderr, "Error sending message: %s\n", strerror(errno));
+        fprintf(stderr, "Error sending message-UPDATE NEW PING: %s\n", strerror(errno));
     } else {
-        printf("%d bytes sent successfully - in update func NEW PING\n", check_send);
+        printf("%d byte sent successfully to RESET TIMER - in update func NEW PING\n", check_send);
     }
+    return 0;
 }
+
 
 /*
 */
@@ -117,8 +114,7 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 {
     
   
-    //IF TIMER NOT UPDATE
-  
+   
     // allocate memory for icmp packet
     struct icmp_echo icmp;
     bzero(&icmp, sizeof(icmp));
@@ -139,13 +135,15 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
     icmp.checksum = htons(
         calculate_checksum((unsigned char*)&icmp, sizeof(icmp))
     );
-
+    
     // send it
     int bytes = sendto(sock, &icmp, sizeof(icmp), 0,
         (struct sockaddr*)addr, sizeof(*addr));
-    if (bytes == -1) {
+    if (bytes == -1 ||bytes ==0) {
+        
         return -1;
     }
+    
     
    
     
@@ -156,10 +154,12 @@ int send_echo_request(int sock, struct sockaddr_in* addr, int ident, int seq)
 
 int recv_echo_reply(int sock, int ident)
 {
+
+
     // allocate buffer
     char buffer[MTU];
     struct sockaddr_in peer_addr;
-
+    
     // receive another packet
     int addr_len = sizeof(peer_addr);
     int bytes = recvfrom(sock, buffer, sizeof(buffer), 0,
@@ -167,12 +167,14 @@ int recv_echo_reply(int sock, int ident)
     if (bytes == -1) {
         // normal return when timeout
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            
             return 0;
         }
-
+        
         return -1;
     }
-
+    
+    
     // find icmp packet in ip packet
     struct icmp_echo* icmp = (struct icmp_echo*)(buffer + 20);
 
@@ -185,9 +187,10 @@ int recv_echo_reply(int sock, int ident)
     if (ntohs(icmp->ident) != ident) {
         return 0;
     }
-
+    //sending a packet to timer watchdog
+    
     // print info
-    printf("%s seq=%d %5.2fms\n",
+    printf("\nfrom %s icmp_seq=%d %5.2fms\n",
         inet_ntoa(peer_addr.sin_addr),
         ntohs(icmp->seq),
         (get_timestamp() - icmp->sending_ts) * 1000
@@ -293,7 +296,12 @@ int main(int argc,char *argv[])
     double next_ts = get_timestamp();
     int ident = getpid();
     int seq = 1;
+    
+    
     for (;;) {
+        
+        
+        
         
         // time to send another packet
         if (get_timestamp() >= next_ts) {
@@ -302,41 +310,48 @@ int main(int argc,char *argv[])
             // send it
             ret = send_echo_request(sock, &addr, ident, seq);
             if (ret == -1) {
-                perror("Send failed");
+                perror("Send failed-NEW PING!!!!!!!!!!!");
             }
             
             // update next sendint timestamp to one second later
             next_ts += 1;
             // increase sequence number
             seq += 1;
-            update(client_socket);
+            //was here update
         }
+        update(client_socket);
         
         // try to receive and print reply
         ret = recv_echo_reply(sock, ident);
         if (ret == -1) {
             perror("Receive failed");
         }
-        
-        /////
-        int ret = recv(sock, &timeout, sizeof(timeout), 0);
-        /*if (ret == -1) {
-        perror("Receive faileddddd");
+        //////////////////////////////////////////////////
+        int rec_timeout = recv(sock, &timeout, sizeof(timeout), 0);
+        if (rec_timeout > 0) {
+        printf("I got a packet- NEWPING RECV\n");
          } 
-         else if (ret == 0) {
+        else if (rec_timeout == 0) {
         // connection was closed by the peer
-        break;
-        } */
-        // check if recv returned without receiving data
-        if (ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-        // no data received, continue loop
-        continue;
-        }
+        printf("connection closed@@!!!!!@@!!!\n");
+        printf("server %s cannot be reached\n",argv[1]);
+        close(client_socket);
+        close(sock);
+        exit(1);
+        //break;
+        } 
 
         
+        // check if recv returned without receiving data
+        /*if (rec_timeout == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        // no data received, continue loop
+        printf("\n");
+        continue;
+        }
+        */
+        ////////////////////////////////////
         
-        
-        
+
     }
 
     close(client_socket);

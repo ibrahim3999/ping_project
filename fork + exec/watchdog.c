@@ -24,22 +24,25 @@ char buffer_timeout[1];
 int timeout_flag = 0;
 int receiver_socket;
 char PingIp[32];
+int client_socket;
 
 int update2(int sock){
-    bzero(PingIp, sizeof(PingIp));
-    int check_send = send(sock, PingIp, sizeof(PingIp), 0);
+    printf("check in update2 - in update2 func WATCHDOG\n");
+    bzero(buffer_timeout, sizeof(buffer_timeout));
+    int check_send = send(sock, buffer_timeout, sizeof(buffer_timeout), 0);
     if (check_send == -1) {
     // an error occurred
     fprintf(stderr, "Eeeeeeerror sending message:in update func WATCHDOG %s\n", strerror(errno));
     } else {
     printf("%d bytes sent successfully - in update func WATCHDOG\n", check_send);
-    close(receiver_socket);
+    close(client_socket);
     }
+    return 0;
 }
 
 void timeout_handler(int sig){
-    printf("server %s cannot be reached\n",PingIp);
-    update2(receiver_socket);
+    update2(client_socket);
+    
     //exit(1);
     timeout_flag = 1;
 }
@@ -55,7 +58,7 @@ int main()
     socklen_t client_addr_length = sizeof(client_addr);
     signal(SIGPIPE, SIG_IGN);
     int receiver_socket = -1;
-    int update=0;
+    
     signal(SIGALRM,timeout_handler);
 
 int setSock(){
@@ -111,9 +114,9 @@ receiver_socket = setSock(); //Creating the socket
         }
     
 
-    printf("\nhello partb-WATCHDOG\n");
+    
     char buffreExit[1];
-    char buffer_timeout[1];
+    
     buffer_timeout[0]='0';
     
 
@@ -127,23 +130,23 @@ receiver_socket = setSock(); //Creating the socket
 
     // Run a loop to Update Watchdog Timer if NEW PING sent msg and reset the timer
     while (1) {
-        printf("check1-WATCHDOG\n");
+        
        // Check if BETTER_PING.C send new packet->Reset timer
         
         int update = recv(client_socket, &buffreExit, sizeof(buffreExit), 0);
-        printf("%d+++\n",update);
+        printf("WATCHDOG GOT %d PACKET TO RESET TIMER\n",update);
         if (update>0) {
             // Reset the timer
             timer.it_value.tv_sec = 10;
             timer.it_value.tv_usec = 0;
             setitimer(ITIMER_REAL, &timer, NULL);
-            printf("Check Timer reset\n");
+            
             //update2(receiver_socket);
+            
             
         }
         
     }
-
     
     
 
